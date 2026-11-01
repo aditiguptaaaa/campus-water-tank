@@ -8,12 +8,14 @@ look like leaks, and the alert manager's de-duplication.
 """
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from watertwin import (Fault, LEAK, OVERFLOW, Params, Pipeline, Reading,
-                       SimConfig, SimulatedSource, Store, TankSpec, Twin,
-                       train_baseline)
+from watertwin import (CsvSource, Fault, LEAK, OVERFLOW, Params, Pipeline,
+                       Reading, SimConfig, SimulatedSource, Store,
+                       StoredSource, TankSpec, Twin, train_baseline,
+                       write_csv)
 from watertwin.alerts import AlertManager
 from watertwin.detect import LeakDetector, forecast_shortfall
 from watertwin.simulator import hour_of_week
@@ -297,6 +299,73 @@ def test_store_round_trip():
     s.set_outcome(aid, "confirmed")
     assert s.alerts("T1")[0]["outcome"] == "confirmed"
     s.close()
+
+
+def test_feeds_are_interchangeable():
+    """SC-8: nothing above the interface can tell one feed from another."""
+    sim = SimulatedSource(quiet_cfg(days=0.5, pump_on_frac=0.35))
+    live = list(sim.readings())
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "history.csv")
+        assert write_csv(path, live) == len(live)
+        replayed = list(CsvSource(SPEC, path).readings())
+
+    assert len(replayed) == len(live)
+    for a, b in zip(live, replayed):
+        assert (a.tank_id, a.ts, a.level_m, a.pump_on) ==                (b.tank_id, b.ts, b.level_m, b.pump_on)
+
+    # The real claim is not that the rows match but that the twin cannot
+    # tell: identical twins over the two feeds must produce identical state.
+    def samples(src):
+        twin = Twin(SPEC)
+        return [(s.ts, s.drain_lpm, s.pumping)
+                for r in src if (s := twin.update(r)) is not None]
+
+    assert samples(live) == samples(replayed)
+
+
+def test_csv_source_skips_other_tanks():
+    other = TankSpec("T2", 3000, 1.5, 400)
+    rows = [Reading("T1", T0 + i * 60, 1.0, False) for i in range(5)]
+    rows += [Reading("T2", T0 + i * 60, 2.0, True) for i in range(3)]
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "both.csv")
+        write_csv(path, rows)
+        assert len(list(CsvSource(SPEC, path).readings())) == 5
+        assert len(list(CsvSource(other, path).readings())) == 3
+
+
+def test_stored_source_replays_the_store():
+    s = Store(":memory:")
+    s.put_tank(SPEC)
+    rows = [Reading("T1", T0 + i * 60, 1.0 + i / 1000, i % 2 == 0)
+            for i in range(20)]
+    s.put_readings(rows)
+    s.commit()
+    back = list(StoredSource(SPEC, s).readings())
+    assert [r.ts for r in back] == [r.ts for r in rows]
+    assert back[0].pump_on is True and back[1].pump_on is False
+    s.close()
+
+
+def test_baseline_trains_from_a_historical_file():
+    """The path a real deployment takes: history on disk, then detection."""
+    sim = SimulatedSource(SimConfig(SPEC, T0, days=14.0, seed=3))
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "history.csv")
+        write_csv(path, sim.readings())
+        base = train_baseline(SPEC, CsvSource(SPEC, path).readings())
+    assert base.trained and base.coverage() > 0.9
+    assert base.pump_start_l > 0 and base.pump_stop_l > base.pump_start_l
+
+    t1 = T0 + 14 * 86400
+    onset = t1 + 86400
+    pipe = Pipeline(SPEC, base, Params(k_lpm=0.3, h_litres=60.0))
+    src = SimulatedSource(SimConfig(SPEC, t1, days=3.0, seed=9,
+                                    faults=[Fault("leak", onset, rate_lpm=2.0)]))
+    hits = [a for r in src.readings() for a in pipe.feed(r)
+            if a.kind == LEAK and a.raised_ts >= onset]
+    assert hits, "a baseline trained from file must still catch a leak"
 
 
 def main() -> int:

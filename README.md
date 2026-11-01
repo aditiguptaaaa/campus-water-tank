@@ -102,6 +102,7 @@ is something to find while you watch. `--speed`, `--port`, `--days` and
 | --- | --- |
 | `watertwin/interface.py` | The data-source contract every feed satisfies |
 | `watertwin/simulator.py` | Tank physics forward in time, with injectable faults |
+| `watertwin/feeds.py` | Historical feeds: CSV replay and store replay |
 | `watertwin/twin.py` | Mass balance and the learned baseline |
 | `watertwin/detect.py` | CUSUM leak detector, forecaster, overflow check |
 | `watertwin/alerts.py` | De-duplication, cool-off, user feedback |
@@ -111,7 +112,16 @@ is something to find while you watch. `--speed`, `--port`, `--days` and
 | `validate.py` | Fault library, metrics, threshold sweep |
 
 Everything above `interface.py` is unaware of which feed is attached, which
-is what makes Phase 2 a driver implementation rather than a rebuild.
+is what makes Phase 2 a driver implementation rather than a rebuild. That
+claim is tested rather than asserted: `test_feeds_are_interchangeable` runs
+identical twins over a live simulated feed and the same run replayed from a
+CSV, and requires the resulting state to match exactly.
+
+```python
+from watertwin import CsvSource, TankSpec, train_baseline
+spec = TankSpec("OH-HOSTEL-A", 5000, 2.0, 750)
+base = train_baseline(spec, CsvSource(spec, "history.csv").readings())
+```
 
 ## Phase 2, not in this repo
 
