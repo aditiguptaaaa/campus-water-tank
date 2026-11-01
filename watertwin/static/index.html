@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Water Tank Twin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #fff; --ink: #1a1a18; --quiet: #6b6b66;
+    --line: #e2e2dd; --accent: #2563eb; --good: #15803d; --warn: #b45309;
+    --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16161a; --card: #1e1e23; --ink: #ececea; --quiet: #9a9a94;
+      --line: #32323a; --accent: #60a5fa; --good: #4ade80; --warn: #fbbf24;
+      --bad: #f87171;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16161a; --card: #1e1e23; --ink: #ececea; --quiet: #9a9a94;
+    --line: #32323a; --accent: #60a5fa; --good: #4ade80; --warn: #fbbf24;
+    --bad: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 16px 48px;
+  }
+  header { max-width: 1040px; margin: 0 auto; padding: 24px 0 8px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--quiet); font-size: 13px; }
+  main { max-width: 1040px; margin: 0 auto; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px; margin: 16px 0;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; }
+  .row > div { flex: 1 1 120px; }
+  .k { color: var(--quiet); font-size: 12px; text-transform: uppercase;
+       letter-spacing: .04em; }
+  .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .v small { font-size: 13px; font-weight: 400; color: var(--quiet); }
+  .bar { height: 10px; background: var(--line); border-radius: 5px;
+         overflow: hidden; margin: 12px 0 4px; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .bar.low i { background: var(--warn); }
+  .bar.crit i { background: var(--bad); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
+          font-size: 12px; border: 1px solid var(--line); color: var(--quiet); }
+  .pill.on { color: var(--good); border-color: currentColor; }
+  .charts { display: grid; gap: 16px; grid-template-columns: 1fr 1fr;
+            margin-top: 16px; }
+  .charts > div { min-width: 0; }
+  @media (max-width: 760px) { .charts { grid-template-columns: 1fr; } }
+  canvas { width: 100% !important; height: 190px !important; }
+  .chart-title { font-size: 12px; color: var(--quiet); margin-bottom: 6px; }
+  .alert { border-left: 3px solid var(--warn); padding: 10px 12px;
+           margin: 10px 0; background: var(--bg); border-radius: 0 8px 8px 0; }
+  .alert.leak { border-color: var(--bad); }
+  .alert.overflow { border-color: var(--accent); }
+  .alert .msg { margin-bottom: 8px; }
+  .alert.done { opacity: .5; }
+  button { font: inherit; font-size: 13px; padding: 4px 10px; cursor: pointer;
+           border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); border-radius: 6px; margin-right: 6px; }
+  button:hover { border-color: var(--accent); }
+  .empty { color: var(--quiet); font-size: 14px; }
+  .note { color: var(--quiet); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Campus Water Tank Digital Twin</h1>
+  <div class="sub">
+    Phase 1, simulated feed &middot; simulated clock <span id="clock">--</span>
+  </div>
+</header>
+<main>
+  <div id="tanks"></div>
+  <div class="card">
+    <div class="k">Alerts</div>
+    <div id="alerts"><p class="empty">No alerts raised yet.</p></div>
+  </div>
+</main>
+
+<script>
+const charts = {};
+const fmt = n => n == null ? "--" : n.toLocaleString(undefined, {maximumFractionDigits: 0});
+const clockOf = ts => new Date(ts * 1000).toUTCString().slice(0, 22);
+
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function tankCard(t) {
+  const pct = Math.round(t.fill * 100);
+  const cls = t.fill < 0.2 ? "crit" : t.fill < 0.35 ? "low" : "";
+  return `<div class="card" id="card-${t.tank_id}">
+    <div class="row">
+      <div style="flex:2 1 240px">
+        <div class="k">${t.tank_id}</div>
+        <div class="v">${t.label}</div>
+      </div>
+      <div><div class="k">Level</div><div class="v">${pct}%<small> of ${fmt(t.capacity_l)} L</small></div></div>
+      <div><div class="k">Volume</div><div class="v">${fmt(t.volume_l)}<small> L</small></div></div>
+      <div><div class="k">Pump</div><div class="v"><span class="pill ${t.pump_on ? "on" : ""}">${t.pump_on ? "running" : "off"}</span></div></div>
+      <div><div class="k">Dry in</div><div class="v">${t.dry_in_min == null ? "&mdash;" : fmt(t.dry_in_min) + "<small> min</small>"}</div></div>
+    </div>
+    <div class="bar ${cls}"><i style="width:${pct}%"></i></div>
+    <div class="note">Reserve ${fmt(t.reserve_l)} L &middot; observed
+      ${t.observed_lpm == null ? "--" : t.observed_lpm.toFixed(1)} L/min against
+      expected ${t.expected_lpm.toFixed(1)} L/min &middot; unexplained loss
+      ${fmt(t.cusum)} / ${fmt(t.cusum_threshold)} L</div>
+    <div class="charts">
+      <div><div class="chart-title">Volume and forecast if the pump stays off</div>
+        <canvas id="vol-${t.tank_id}"></canvas></div>
+      <div><div class="chart-title">Observed against expected drain rate (L/min)</div>
+        <canvas id="rate-${t.tank_id}"></canvas></div>
+    </div>
+  </div>`;
+}
+
+function baseOpts(yTitle) {
+  const grid = css("--line"), ink = css("--quiet");
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: {mode: "index", intersect: false},
+    plugins: {legend: {labels: {color: ink, boxWidth: 10, font: {size: 11}}}},
+    elements: {point: {radius: 0}},
+    scales: {
+      x: {ticks: {color: ink, maxTicksLimit: 6, font: {size: 10}},
+          grid: {color: grid}},
+      y: {title: {display: true, text: yTitle, color: ink, font: {size: 10}},
+          ticks: {color: ink, font: {size: 10}}, grid: {color: grid}}
+    }
+  };
+}
+
+function upsert(id, cfg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (charts[id]) {
+    charts[id].data = cfg.data;
+    charts[id].update("none");
+  } else {
+    charts[id] = new Chart(el, cfg);
+  }
+}
+
+async function drawSeries(tankId) {
+  const s = await (await fetch(`/api/series?tank=${encodeURIComponent(tankId)}`)).json();
+  if (!s.rates) return;
+  const accent = css("--accent"), quiet = css("--quiet"), bad = css("--bad");
+
+  const hist = s.readings.map(r => ({x: clockOf(r.ts), y: r.volume_l}));
+  const fc = s.forecast.map(p => ({x: clockOf(p.ts), y: p.volume_l}));
+  upsert(`vol-${tankId}`, {
+    type: "line",
+    data: {datasets: [
+      {label: "observed", data: hist, borderColor: accent, borderWidth: 1.5, tension: .2},
+      {label: "forecast", data: fc, borderColor: quiet, borderWidth: 1.5,
+       borderDash: [4, 4], tension: .2},
+      {label: "reserve", data: hist.concat(fc).map(p => ({x: p.x, y: s.reserve_l})),
+       borderColor: bad, borderWidth: 1, borderDash: [2, 3]}
+    ]},
+    options: baseOpts("litres")
+  });
+
+  const lbl = s.rates.map(r => clockOf(r.ts));
+  upsert(`rate-${tankId}`, {
+    type: "line",
+    data: {labels: lbl, datasets: [
+      {label: "observed", data: s.rates.map(r => r.pumping ? null : r.observed),
+       borderColor: accent, borderWidth: 1.5, spanGaps: false, tension: .2},
+      {label: "expected", data: s.rates.map(r => r.expected),
+       borderColor: quiet, borderWidth: 1.5, borderDash: [4, 4], tension: .2}
+    ]},
+    options: baseOpts("L/min")
+  });
+}
+
+function alertHtml(a) {
+  const done = a.outcome !== "open";
+  const mins = Math.round((a.raised_ts - a.onset_ts) / 60);
+  let msg;
+  if (a.kind === "leak") {
+    msg = `<b>Suspected leak on ${a.tank_id}</b> &mdash; losing about
+      ${a.magnitude.toFixed(1)} L/min more than this tank's own history
+      explains, since ${clockOf(a.onset_ts)} (${mins} min ago,
+      about ${Math.round(a.magnitude * mins)} L). Confidence
+      ${Math.round(a.confidence * 100)}%.`;
+  } else if (a.kind === "shortfall") {
+    msg = `<b>${a.tank_id} may run dry</b> &mdash; forecast below reserve in
+      about ${Math.round(a.magnitude)} minutes and the pump is not running.
+      ${a.detail}`;
+  } else {
+    msg = `<b>${a.tank_id} overflow</b> &mdash; ${a.detail}.`;
+  }
+  return `<div class="alert ${a.kind} ${done ? "done" : ""}">
+    <div class="msg">${msg}</div>
+    ${done ? `<span class="pill">${a.outcome}</span>`
+           : `<button onclick="mark(${a.id},'confirmed')">Confirm</button>
+              <button onclick="mark(${a.id},'false')">False alarm</button>
+              <button onclick="mark(${a.id},'resolved')">Resolved</button>`}
+  </div>`;
+}
+
+async function mark(id, outcome) {
+  await fetch("/api/feedback", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({id, outcome})
+  });
+  tick();
+}
+
+let known = "";
+async function tick() {
+  let st;
+  try { st = await (await fetch("/api/state")).json(); }
+  catch (e) { return; }
+  document.getElementById("clock").textContent = clockOf(st.sim_ts);
+
+  const ids = st.tanks.map(t => t.tank_id).join(",");
+  if (ids !== known) {
+    document.getElementById("tanks").innerHTML = st.tanks.map(tankCard).join("");
+    known = ids;
+  } else {
+    st.tanks.forEach(t => {
+      const card = document.getElementById(`card-${t.tank_id}`);
+      if (!card) return;
+      const fresh = document.createElement("div");
+      fresh.innerHTML = tankCard(t);
+      // Replace only the text rows, leaving the canvases (and their charts) alone.
+      card.querySelector(".row").innerHTML = fresh.querySelector(".row").innerHTML;
+      card.querySelector(".bar").outerHTML = fresh.querySelector(".bar").outerHTML;
+      card.querySelector(".note").innerHTML = fresh.querySelector(".note").innerHTML;
+    });
+  }
+
+  const box = document.getElementById("alerts");
+  box.innerHTML = st.alerts.length
+    ? st.alerts.map(alertHtml).join("")
+    : '<p class="empty">No alerts raised yet.</p>';
+}
+
+setInterval(tick, 1000);
+setInterval(() => {
+  document.querySelectorAll("[id^=card-]").forEach(c =>
+    drawSeries(c.id.slice(5)));
+}, 3000);
+tick();
+</script>
+</body>
+</html>
