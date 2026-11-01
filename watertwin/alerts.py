@@ -14,6 +14,7 @@ SHORTFALL = "shortfall"
 OVERFLOW = "overflow"
 
 DEFAULT_COOLOFF_S = 6 * 3600
+TARIFF_INR_PER_KL = 35.0        # mid of the 20-50 range; set locally
 
 
 @dataclass
@@ -28,14 +29,34 @@ class Alert:
     outcome: str = "open"   # open | confirmed | false | resolved
     id: int | None = None
 
+    def lost_litres(self, now_ts: int | None = None) -> float:
+        """Unexplained volume since onset. Zero for anything but a leak."""
+        if self.kind != LEAK:
+            return 0.0
+        end = now_ts if now_ts is not None else self.raised_ts
+        return max(0.0, self.magnitude * (end - self.onset_ts) / 60.0)
+
+    def lost_cost_inr(self, now_ts: int | None = None,
+                      tariff_inr_per_kl: float = TARIFF_INR_PER_KL) -> float:
+        return self.lost_litres(now_ts) / 1000.0 * tariff_inr_per_kl
+
+    def projected_monthly(self, tariff_inr_per_kl: float = TARIFF_INR_PER_KL
+                          ) -> tuple[float, float]:
+        """Litres and rupees a month if this leak is left running."""
+        litres = self.magnitude * 60 * 24 * 30
+        return litres, litres / 1000.0 * tariff_inr_per_kl
+
     def message(self) -> str:
         """Worded as a suspicion with its evidence. Never as a fact."""
         if self.kind == LEAK:
-            lost = self.magnitude * (self.raised_ts - self.onset_ts) / 60.0
+            mo_l, mo_inr = self.projected_monthly()
             return (f"Suspected leak on {self.tank_id}: losing about "
                     f"{self.magnitude:.1f} L/min more than this tank's own "
                     f"history explains, since {_clock(self.onset_ts)} "
-                    f"(~{lost:.0f} L so far). Confidence {self.confidence:.0%}.")
+                    f"(~{self.lost_litres():.0f} L, "
+                    f"Rs {self.lost_cost_inr():.0f} so far; "
+                    f"~{mo_l / 1000:.0f} kL / Rs {mo_inr:.0f} a month if left). "
+                    f"Confidence {self.confidence:.0%}.")
         if self.kind == SHORTFALL:
             return (f"{self.tank_id} is forecast to fall below its reserve in "
                     f"about {self.magnitude:.0f} minutes and the pump is not "

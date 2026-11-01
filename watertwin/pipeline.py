@@ -20,8 +20,15 @@ class Params:
     k_mad_mult: float = 1.0
     window_min: int = DEFAULT_WINDOW_MIN
     cooloff_s: int = 6 * 3600
-    shortfall_warn_min: float = 180.0
-    refill_overdue_frac: float = 0.85   # of the learned pump-start level
+    shortfall_warn_min: float = 180.0   # the lead time SC-4 asks for
+    # Fraction of the learned pump-start level below which a refill counts
+    # as overdue. It must sit under the pump's real cut-in, which the
+    # learned median overshoots by about one step of inflow -- the level is
+    # recorded at the first reading that shows the pump already running.
+    # Higher means more warning, so it is set just under that bound, not
+    # far under: the warning time is (trigger - reserve) / demand, so the
+    # margin given away here is lead time the maintenance team never gets.
+    refill_overdue_frac: float = 0.92
     horizon_min: int = 720
 
 
@@ -85,9 +92,13 @@ class Pipeline:
         trigger = self.baseline.pump_start_l * self.p.refill_overdue_frac
         refill_overdue = (self.baseline.pump_start_l > 0
                           and self.twin.volume_l < trigger)
+        # Fire as soon as the refill is overdue, not once the forecast has
+        # counted down to the warning window. Waiting for the countdown
+        # caps the warning at the window length and throws away the lead
+        # time the alert exists to provide.
         firing = (not self.twin.pump_on and refill_overdue
                   and f.lead_minutes is not None
-                  and f.lead_minutes <= self.p.shortfall_warn_min)
+                  and f.lead_minutes <= self.p.horizon_min)
         if not firing:
             self.alerts.clear(self.spec.tank_id, SHORTFALL)
             return []

@@ -30,7 +30,8 @@ ACADEMIC_PROFILE = [
 @dataclass
 class Fault:
     """A fault to inject, with the ground truth needed to score detection."""
-    kind: str               # leak | stuck_float | dropout | demand_spike
+    kind: str               # leak | stuck_float | pump_fail |
+                            # dropout | demand_spike
     onset_ts: int
     end_ts: int = 0         # 0 = runs to the end of the simulation
     rate_lpm: float = 0.0   # leak rate, or extra demand for a spike
@@ -95,12 +96,14 @@ class SimulatedSource(DataSource):
         for i in range(steps):
             ts = c.start_ts + i * c.step_s
             stuck = any(f.kind == "stuck_float" and f.active(ts) for f in c.faults)
+            dead = any(f.kind == "pump_fail" and f.active(ts) for f in c.faults)
 
             # --- pump control (open loop, as on a real roof) ---
             if pump:
-                if volume >= spec.capacity_l * c.pump_off_frac and not stuck:
+                if dead or (volume >= spec.capacity_l * c.pump_off_frac
+                            and not stuck):
                     pump = False
-            elif volume <= spec.capacity_l * c.pump_on_frac:
+            elif volume <= spec.capacity_l * c.pump_on_frac and not dead:
                 pump = True
 
             # --- flows over this step ---

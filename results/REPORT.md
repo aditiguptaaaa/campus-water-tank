@@ -12,6 +12,8 @@ Operating point: k = 0.3 L/min, h = 60.0 L, 10-minute windows, 6 h cool-off.
 | SC-1 | Leak detection at 1 L/min and above | >= 90% | 100% | PASS |
 | SC-2 | Detection latency at 1 L/min (median) | <= 120 min | 120 | PASS |
 | SC-3 | False alarms on fault-free data | <= 1 / tank-week | 0.26 | PASS |
+| SC-4 | Shortfall warning lead time (median) | >= 180 min | 233 | PASS |
+| SC-5 | Forecast error at 6 h (MAE) | <= 10% of capacity | 0.7% | PASS |
 | SC-6 | Overflow detection | 100% | 100% | PASS |
 
 ## Detection by leak rate
@@ -23,6 +25,14 @@ Operating point: k = 0.3 L/min, h = 60.0 L, 10-minute windows, 6 h cool-off.
 | 2 | 5 | 5 | 100% | 90 | 1.97 |
 | 3 | 5 | 5 | 100% | 80 | 2.77 |
 | 5 | 5 | 5 | 100% | 80 | 3.88 |
+
+## Shortfall warning
+
+3 pump-failure scenarios, 100% warned. Median lead before the reserve was actually crossed: 233 min (worst 233 min).
+
+## Forecast accuracy
+
+65 back-tests at a 6 hour horizon against runs with the pump off: mean absolute error 33 L (0.7% of capacity), 90th percentile 70 L.
 
 ## False alarms
 
@@ -65,4 +75,4 @@ than reporting the best detection rate at an unusable rate.
 | 1.5 | 60 | 60% | 0% | 100 | 0.19 |
 | 1.5 | 90 | 60% | 0% | 120 | 0.19 |
 
-Runtime 7.5 s.
+Runtime 8.0 s.

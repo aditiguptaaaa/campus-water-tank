@@ -56,6 +56,12 @@
     "n": 3,
     "detection_rate": 1.0
   },
+  "shortfall": {
+    "n": 3,
+    "detection_rate": 1.0,
+    "median_lead_min": 233.0,
+    "min_lead_min": 233.0
+  },
   "false_alarms": {
     "total": 4,
     "clean_tank_weeks": 15.7,
@@ -280,7 +286,8 @@
       "latency_min": 250.0,
       "estimate_lpm": 0.6211315260966512,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 0.5 L/min s23",
@@ -290,7 +297,8 @@
       "latency_min": 340.0,
       "estimate_lpm": 0.5148691212072354,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 0.5 L/min s37",
@@ -300,7 +308,8 @@
       "latency_min": 270.0,
       "estimate_lpm": 0.6020909784263776,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 0.5 L/min s51",
@@ -310,7 +319,8 @@
       "latency_min": 240.0,
       "estimate_lpm": 0.6492368992166432,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 0.5 L/min s67",
@@ -320,7 +330,8 @@
       "latency_min": 140.0,
       "estimate_lpm": 0.8876030095581093,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 1.0 L/min s11",
@@ -330,7 +341,8 @@
       "latency_min": 130.0,
       "estimate_lpm": 1.2690032777538103,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 1.0 L/min s23",
@@ -340,7 +352,8 @@
       "latency_min": 140.0,
       "estimate_lpm": 1.0524141959393092,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 1.0 L/min s37",
@@ -350,7 +363,8 @@
       "latency_min": 120.0,
       "estimate_lpm": 1.2840142887919619,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 1.0 L/min s51",
@@ -360,7 +374,8 @@
       "latency_min": 120.0,
       "estimate_lpm": 1.2078085709850312,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 1.0 L/min s67",
@@ -370,7 +385,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 1.1866677493597946,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 2.0 L/min s11",
@@ -380,7 +396,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 2.0703598526320093,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 2.0 L/min s23",
@@ -390,7 +407,8 @@
       "latency_min": 100.0,
       "estimate_lpm": 1.9709901808985706,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 2.0 L/min s37",
@@ -400,7 +418,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 2.064711864081516,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 2.0 L/min s51",
@@ -410,7 +429,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 1.794464941263168,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 2.0 L/min s67",
@@ -420,7 +440,8 @@
       "latency_min": 70.0,
       "estimate_lpm": 1.491704917124912,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 3.0 L/min s11",
@@ -430,7 +451,8 @@
       "latency_min": 20.0,
       "estimate_lpm": 2.773074242713877,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 3.0 L/min s23",
@@ -440,7 +462,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 2.9567103741065086,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 3.0 L/min s37",
@@ -450,7 +473,8 @@
       "latency_min": 90.0,
       "estimate_lpm": 2.8667945773550856,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 3.0 L/min s51",
@@ -460,7 +484,8 @@
       "latency_min": 80.0,
       "estimate_lpm": 2.2832982570957596,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 3.0 L/min s67",
@@ -470,7 +495,8 @@
       "latency_min": 80.0,
       "estimate_lpm": 1.400624621456234,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 5.0 L/min s11",
@@ -480,7 +506,8 @@
       "latency_min": 10.0,
       "estimate_lpm": 3.9554209360941512,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 5.0 L/min s23",
@@ -490,7 +517,8 @@
       "latency_min": 80.0,
       "estimate_lpm": 4.902317632275617,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 5.0 L/min s37",
@@ -500,7 +528,8 @@
       "latency_min": 10.0,
       "estimate_lpm": 3.879941444070618,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 5.0 L/min s51",
@@ -510,7 +539,8 @@
       "latency_min": 80.0,
       "estimate_lpm": 2.8393163007558315,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "leak 5.0 L/min s67",
@@ -520,7 +550,8 @@
       "latency_min": 80.0,
       "estimate_lpm": 1.900624621456234,
       "false_leaks": 0,
-      "days": 5.0
+      "days": 5.0,
+      "lead_min": null
     },
     {
       "scenario": "stuck float s11",
@@ -530,7 +561,8 @@
       "latency_min": 891.0,
       "estimate_lpm": 2.4205742660208007,
       "false_leaks": 0,
-      "days": 3.0
+      "days": 3.0,
+      "lead_min": null
     },
     {
       "scenario": "stuck float s23",
@@ -540,7 +572,8 @@
       "latency_min": 856.0,
       "estimate_lpm": 1.631433061014241,
       "false_leaks": 0,
-      "days": 3.0
+      "days": 3.0,
+      "lead_min": null
     },
     {
       "scenario": "stuck float s37",
@@ -550,7 +583,41 @@
       "latency_min": 876.0,
       "estimate_lpm": 2.126370483576134,
       "false_leaks": 0,
-      "days": 3.0
+      "days": 3.0,
+      "lead_min": null
+    },
+    {
+      "scenario": "pump failure s11",
+      "expect": "shortfall",
+      "rate_lpm": 0.0,
+      "detected": true,
+      "latency_min": 860.0,
+      "estimate_lpm": 250.0,
+      "false_leaks": 0,
+      "days": 3.0,
+      "lead_min": 233.0
+    },
+    {
+      "scenario": "pump failure s23",
+      "expect": "shortfall",
+      "rate_lpm": 0.0,
+      "detected": true,
+      "latency_min": 830.0,
+      "estimate_lpm": 240.0,
+      "false_leaks": 0,
+      "days": 3.0,
+      "lead_min": 233.0
+    },
+    {
+      "scenario": "pump failure s37",
+      "expect": "shortfall",
+      "rate_lpm": 0.0,
+      "detected": true,
+      "latency_min": 850.0,
+      "estimate_lpm": 240.0,
+      "false_leaks": 0,
+      "days": 3.0,
+      "lead_min": 235.0
     },
     {
       "scenario": "clean s11",
@@ -560,7 +627,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 14.0
+      "days": 14.0,
+      "lead_min": null
     },
     {
       "scenario": "clean s23",
@@ -570,7 +638,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 14.0
+      "days": 14.0,
+      "lead_min": null
     },
     {
       "scenario": "clean s37",
@@ -580,7 +649,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 14.0
+      "days": 14.0,
+      "lead_min": null
     },
     {
       "scenario": "clean s51",
@@ -590,7 +660,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 14.0
+      "days": 14.0,
+      "lead_min": null
     },
     {
       "scenario": "clean s67",
@@ -600,7 +671,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 14.0
+      "days": 14.0,
+      "lead_min": null
     },
     {
       "scenario": "demand spike s11",
@@ -610,7 +682,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 1,
-      "days": 4.0
+      "days": 4.0,
+      "lead_min": null
     },
     {
       "scenario": "demand spike s23",
@@ -620,7 +693,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 1,
-      "days": 4.0
+      "days": 4.0,
+      "lead_min": null
     },
     {
       "scenario": "demand spike s37",
@@ -630,7 +704,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 1,
-      "days": 4.0
+      "days": 4.0,
+      "lead_min": null
     },
     {
       "scenario": "sensor dropout s11",
@@ -640,7 +715,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 4.0
+      "days": 4.0,
+      "lead_min": null
     },
     {
       "scenario": "sensor dropout s23",
@@ -650,7 +726,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 4.0
+      "days": 4.0,
+      "lead_min": null
     },
     {
       "scenario": "quantised 1cm s11",
@@ -660,7 +737,8 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 1,
-      "days": 10.0
+      "days": 10.0,
+      "lead_min": null
     },
     {
       "scenario": "quantised 1cm s23",
@@ -670,8 +748,16 @@
       "latency_min": null,
       "estimate_lpm": null,
       "false_leaks": 0,
-      "days": 10.0
+      "days": 10.0,
+      "lead_min": null
     }
   ],
-  "runtime_s": 7.5
+  "forecast": {
+    "n": 65,
+    "horizon_min": 360,
+    "mae_l": 33.28789753485057,
+    "mae_pct_capacity": 0.006657579506970115,
+    "p90_l": 70.24431314411368
+  },
+  "runtime_s": 8.0
 }

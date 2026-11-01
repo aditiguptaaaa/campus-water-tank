@@ -14,11 +14,12 @@ import sys
 import time
 from dataclasses import dataclass, field
 
-from watertwin import (Fault, LEAK, OVERFLOW, Params, Pipeline, SimConfig,
-                       SimulatedSource, TankSpec, train_baseline)
+from watertwin import (Fault, LEAK, OVERFLOW, Params, Pipeline, SHORTFALL,
+                       SimConfig, SimulatedSource, TankSpec, Twin,
+                       forecast_shortfall, train_baseline)
 from watertwin.alerts import AlertManager
 from watertwin.detect import LeakDetector
-from watertwin.twin import RateSample, Twin
+from watertwin.twin import RateSample
 
 SPEC = TankSpec("OH-HOSTEL-A", capacity_l=5000, area_m2=2.0, reserve_l=750,
                 label="Hostel A overhead")
@@ -65,6 +66,11 @@ def fault_library(quick: bool = False) -> list[Scenario]:
         out.append(Scenario(f"stuck float s{sd}", 3.0, sd, "overflow", onset,
                             faults=[Fault("stuck_float", onset)]))
 
+    for sd in seeds[:3]:
+        onset = T1 + 86400
+        out.append(Scenario(f"pump failure s{sd}", 3.0, sd, "shortfall", onset,
+                            faults=[Fault("pump_fail", onset)]))
+
     # Cases that must NOT raise a leak alert.
     for sd in seeds:
         out.append(Scenario(f"clean s{sd}", 14.0, sd, "none"))
@@ -94,13 +100,18 @@ class Outcome:
     estimate_lpm: float | None
     false_leaks: int
     days: float
+    lead_min: float | None = None       # shortfall: warning before it happened
 
 
 def run(scen: Scenario, base, params: Params) -> Outcome:
     pipe = Pipeline(SPEC, base, params)
     first = None
     false_leaks = 0
+    crossed_ts = None
     for r in scen.source().readings():
+        below = SPEC.volume_l(r.level_m) <= SPEC.reserve_l
+        if crossed_ts is None and r.ts >= scen.onset_ts and below:
+            crossed_ts = r.ts
         for a in pipe.feed(r):
             if a.kind == LEAK:
                 if scen.expect == "leak" and a.raised_ts >= scen.onset_ts:
@@ -111,9 +122,16 @@ def run(scen: Scenario, base, params: Params) -> Outcome:
             elif a.kind == OVERFLOW and scen.expect == "overflow":
                 if first is None:
                     first = a
+            elif a.kind == SHORTFALL and scen.expect == "shortfall":
+                if first is None:
+                    first = a
+    lead = None
+    if first is not None and crossed_ts and scen.expect == "shortfall":
+        lead = (crossed_ts - first.raised_ts) / 60.0
     return Outcome(scen.name, scen.expect, scen.rate_lpm, first is not None,
                    (first.raised_ts - scen.onset_ts) / 60.0 if first else None,
-                   first.magnitude if first else None, false_leaks, scen.days)
+                   first.magnitude if first else None, false_leaks, scen.days,
+                   lead)
 
 
 # --- threshold sweep ----------------------------------------------------
@@ -185,6 +203,37 @@ def sweep(scens, cache, base, ks, hs, cooloff_s) -> list[dict]:
     return rows
 
 
+def forecast_backtest(base, horizon_min: int = 360) -> dict:
+    """Forecast error at a 6 hour horizon, against what actually happened.
+
+    The forecast claims: if the pump stays off, the level will be here. It
+    is scored against runs where the pump is in fact off -- the claim it
+    makes, rather than a weaker one it would pass more easily.
+    """
+    errs = []
+    for sd in SEEDS:
+        cfg = SimConfig(SPEC, T1, days=1.0, seed=sd, pump_on_frac=-1.0)
+        rs = list(SimulatedSource(cfg).readings())
+        by_ts = {r.ts: SPEC.volume_l(r.level_m) for r in rs}
+        for r in rs[::60]:                       # hourly start points
+            target = r.ts + horizon_min * 60
+            if target not in by_ts or by_ts[target] <= 1.0:
+                continue                         # dry: nothing left to predict
+            twin = Twin(SPEC)
+            twin.update(r)
+            f = forecast_shortfall(twin, base, 0.0, horizon_min, 10)
+            errs.append(abs(f.points[-1][1] - by_ts[target]))
+    if not errs:
+        return {"n": 0}
+    return {
+        "n": len(errs),
+        "horizon_min": horizon_min,
+        "mae_l": statistics.mean(errs),
+        "mae_pct_capacity": statistics.mean(errs) / SPEC.capacity_l,
+        "p90_l": sorted(errs)[int(0.9 * (len(errs) - 1))],
+    }
+
+
 def pick(rows: list[dict], ceiling: float = 1.0) -> dict:
     """Maximise detection subject to the false-alarm ceiling, not instead of it."""
     ok = [r for r in rows if r["false_alarms_per_tank_week"] <= ceiling]
@@ -223,7 +272,9 @@ def main() -> int:
 
     print("running the full pipeline at the chosen operating point ...")
     outcomes = [run(s, base, params) for s in scens]
+    print("back-testing the forecast ...")
     report = summarise(outcomes, params, base, sweep_rows, chosen)
+    report["forecast"] = forecast_backtest(base)
     report["runtime_s"] = round(time.time() - t0, 1)
 
     (RESULTS / "metrics.json").write_text(json.dumps(report, indent=2))
@@ -236,6 +287,7 @@ def main() -> int:
 def summarise(outs, params: Params, base, sweep_rows, chosen) -> dict:
     leaks = [o for o in outs if o.expect == "leak"]
     overs = [o for o in outs if o.expect == "overflow"]
+    shorts = [o for o in outs if o.expect == "shortfall"]
     nones = [o for o in outs if o.expect == "none"]
     clean_weeks = sum(o.days for o in nones) / 7.0
 
@@ -269,11 +321,23 @@ def summarise(outs, params: Params, base, sweep_rows, chosen) -> dict:
         "overflow": {"n": len(overs),
                      "detection_rate": (sum(o.detected for o in overs) / len(overs)
                                         if overs else None)},
+        "shortfall": _shortfall_stats(shorts),
         "false_alarms": {"total": fa, "clean_tank_weeks": round(clean_weeks, 1),
                          "per_tank_week": round(fa / clean_weeks, 3)},
         "sweep": sweep_rows,
         "chosen_point": chosen,
         "scenarios": [o.__dict__ for o in outs],
+    }
+
+
+def _shortfall_stats(shorts) -> dict:
+    leads = [o.lead_min for o in shorts if o.lead_min is not None]
+    return {
+        "n": len(shorts),
+        "detection_rate": (sum(o.detected for o in shorts) / len(shorts)
+                           if shorts else None),
+        "median_lead_min": statistics.median(leads) if leads else None,
+        "min_lead_min": min(leads) if leads else None,
     }
 
 
@@ -301,6 +365,10 @@ def render(r: dict) -> str:
          one.get("median_latency_min"), 120, "lte"),
         ("SC-3", "False alarms on fault-free data", "<= 1 / tank-week",
          f["per_tank_week"], 1.0, "lte"),
+        ("SC-4", "Shortfall warning lead time (median)", ">= 180 min",
+         r.get("shortfall", {}).get("median_lead_min"), 180, "gte"),
+        ("SC-5", "Forecast error at 6 h (MAE)", "<= 10% of capacity",
+         r.get("forecast", {}).get("mae_pct_capacity"), 0.10, "frac"),
         ("SC-6", "Overflow detection", "100%",
          r["overflow"]["detection_rate"], 1.0, "pct"),
     ]
@@ -309,6 +377,10 @@ def render(r: dict) -> str:
             shown, ok = "n/a", False
         elif mode == "pct":
             shown, ok = f"{val:.0%}", val >= thr
+        elif mode == "gte":
+            shown, ok = f"{val:.0f}", val >= thr
+        elif mode == "frac":
+            shown, ok = f"{val:.1%}", val <= thr
         else:
             shown, ok = (f"{val:.0f}" if val >= 10 else f"{val:.2f}"), val <= thr
         lines.append(f"| {cid} | {name} | {target} | {shown} | "
@@ -323,6 +395,22 @@ def render(r: dict) -> str:
         est = f"{d['median_estimate_lpm']:.2f}" if d["median_estimate_lpm"] else "--"
         lines.append(f"| {rate} | {d['n']} | {d['detected']} | "
                      f"{d['detection_rate']:.0%} | {lat} | {est} |")
+
+    sf, fo = r.get("shortfall", {}), r.get("forecast", {})
+    if sf.get("n"):
+        lines += ["", "## Shortfall warning", "",
+                  f"{sf['n']} pump-failure scenarios, "
+                  f"{sf['detection_rate']:.0%} warned. Median lead before the "
+                  f"reserve was actually crossed: "
+                  f"{sf['median_lead_min']:.0f} min "
+                  f"(worst {sf['min_lead_min']:.0f} min)."]
+    if fo.get("n"):
+        lines += ["", "## Forecast accuracy", "",
+                  f"{fo['n']} back-tests at a {fo['horizon_min'] // 60} hour "
+                  f"horizon against runs with the pump off: mean absolute "
+                  f"error {fo['mae_l']:.0f} L "
+                  f"({fo['mae_pct_capacity']:.1%} of capacity), "
+                  f"90th percentile {fo['p90_l']:.0f} L."]
 
     lines += ["", "## False alarms", "",
               f"{f['total']} false leak alerts over {f['clean_tank_weeks']} "
