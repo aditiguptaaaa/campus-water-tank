@@ -239,8 +239,10 @@ def pick(rows: list[dict], ceiling: float = 1.0) -> dict:
     ok = [r for r in rows if r["false_alarms_per_tank_week"] <= ceiling]
     if not ok:
         return min(rows, key=lambda r: r["false_alarms_per_tank_week"])
-    return max(ok, key=lambda r: (r["detection_rate"],
-                                  -(r["median_latency_min"] or 1e9)))
+    def latency(r):
+        lat = r["median_latency_min"]
+        return 1e9 if lat is None else lat      # 0 is fastest, not missing
+    return max(ok, key=lambda r: (r["detection_rate"], -latency(r)))
 
 
 def main() -> int:
@@ -323,7 +325,9 @@ def summarise(outs, params: Params, base, sweep_rows, chosen) -> dict:
                                         if overs else None)},
         "shortfall": _shortfall_stats(shorts),
         "false_alarms": {"total": fa, "clean_tank_weeks": round(clean_weeks, 1),
-                         "per_tank_week": round(fa / clean_weeks, 3)},
+                         # Unrounded: rounding here and again in render()
+                         # turned 0.2545 into 0.255 and then "0.26".
+                         "per_tank_week": fa / clean_weeks},
         "sweep": sweep_rows,
         "chosen_point": chosen,
         "scenarios": [o.__dict__ for o in outs],
@@ -391,8 +395,11 @@ def render(r: dict) -> str:
               "Median estimate (L/min) |",
               "| --- | --- | --- | --- | --- | --- |"]
     for rate, d in L["by_rate"].items():
-        lat = f"{d['median_latency_min']:.0f}" if d["median_latency_min"] else "--"
-        est = f"{d['median_estimate_lpm']:.2f}" if d["median_estimate_lpm"] else "--"
+        # "is not None": a latency of 0 is a measurement, not a missing value.
+        lat = (f"{d['median_latency_min']:.0f}"
+               if d["median_latency_min"] is not None else "--")
+        est = (f"{d['median_estimate_lpm']:.2f}"
+               if d["median_estimate_lpm"] is not None else "--")
         lines.append(f"| {rate} | {d['n']} | {d['detected']} | "
                      f"{d['detection_rate']:.0%} | {lat} | {est} |")
 
@@ -415,7 +422,13 @@ def render(r: dict) -> str:
     lines += ["", "## False alarms", "",
               f"{f['total']} false leak alerts over {f['clean_tank_weeks']} "
               f"fault-free tank-weeks = **{f['per_tank_week']:.2f} per tank-week**.",
-              "",
+              ""]
+    sources = [s for s in r.get("scenarios", []) if s["false_leaks"]]
+    if sources:
+        lines += ["Where they came from:", ""]
+        lines += [f"- {s['scenario']}: {s['false_leaks']}" for s in sources]
+        lines += [""]
+    lines += [
               "Fault-free scenarios include legitimate demand spikes, sensor",
               "dropouts and a 1 cm quantised sensor. All must stay quiet.",
               ""]
@@ -427,7 +440,12 @@ def render(r: dict) -> str:
                   "The chosen point maximises detection subject to SC-3, rather",
                   "than reporting the best detection rate at an unusable rate.",
                   "",
-                  "| k (L/min) | h (L) | Detection | 1 L/min | Median latency | "
+                  "Median latency here is over all leak rates; SC-2 above is",
+                  "the 1 L/min runs alone, so the two differ. A latency of 0",
+                  "means alerts were already firing from noise at onset.",
+                  "",
+                  "| k (L/min) | h (L) | Detection | 1 L/min | "
+                  "Median latency, all rates (min) | "
                   "False alarms / tank-week |",
                   "| --- | --- | --- | --- | --- | --- |"]
         for row in r["sweep"]:
@@ -437,7 +455,7 @@ def render(r: dict) -> str:
             d1 = (f"{row['detection_rate_1lpm']:.0%}"
                   if row["detection_rate_1lpm"] is not None else "--")
             lat = (f"{row['median_latency_min']:.0f}"
-                   if row["median_latency_min"] else "--")
+                   if row["median_latency_min"] is not None else "--")
             lines.append(f"| {row['k_lpm']} | {row['h_litres']:g} | "
                          f"{row['detection_rate']:.0%} | {d1} | {lat} | "
                          f"{row['false_alarms_per_tank_week']:.2f}{star} |")

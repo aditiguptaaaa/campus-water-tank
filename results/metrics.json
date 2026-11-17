@@ -65,7 +65,7 @@
   "false_alarms": {
     "total": 4,
     "clean_tank_weeks": 15.7,
-    "per_tank_week": 0.255
+    "per_tank_week": 0.2545454545454546
   },
   "sweep": [
     {
@@ -759,5 +759,5 @@
     "mae_pct_capacity": 0.006657579506970115,
     "p90_l": 70.24431314411368
   },
-  "runtime_s": 8.0
+  "runtime_s": 3.5
 }

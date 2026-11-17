@@ -11,7 +11,7 @@ Operating point: k = 0.3 L/min, h = 60.0 L, 10-minute windows, 6 h cool-off.
 | --- | --- | --- | --- | --- |
 | SC-1 | Leak detection at 1 L/min and above | >= 90% | 100% | PASS |
 | SC-2 | Detection latency at 1 L/min (median) | <= 120 min | 120 | PASS |
-| SC-3 | False alarms on fault-free data | <= 1 / tank-week | 0.26 | PASS |
+| SC-3 | False alarms on fault-free data | <= 1 / tank-week | 0.25 | PASS |
 | SC-4 | Shortfall warning lead time (median) | >= 180 min | 233 | PASS |
 | SC-5 | Forecast error at 6 h (MAE) | <= 10% of capacity | 0.7% | PASS |
 | SC-6 | Overflow detection | 100% | 100% | PASS |
@@ -36,7 +36,14 @@ Operating point: k = 0.3 L/min, h = 60.0 L, 10-minute windows, 6 h cool-off.
 
 ## False alarms
 
-4 false leak alerts over 15.7 fault-free tank-weeks = **0.26 per tank-week**.
+4 false leak alerts over 15.7 fault-free tank-weeks = **0.25 per tank-week**.
+
+Where they came from:
+
+- demand spike s11: 1
+- demand spike s23: 1
+- demand spike s37: 1
+- quantised 1cm s11: 1
 
 Fault-free scenarios include legitimate demand spikes, sensor
 dropouts and a 1 cm quantised sensor. All must stay quiet.
@@ -47,9 +54,13 @@ Detection against false alarms across the operating curve.
 The chosen point maximises detection subject to SC-3, rather
 than reporting the best detection rate at an unusable rate.
 
-| k (L/min) | h (L) | Detection | 1 L/min | Median latency | False alarms / tank-week |
+Median latency here is over all leak rates; SC-2 above is
+the 1 L/min runs alone, so the two differ. A latency of 0
+means alerts were already firing from noise at onset.
+
+| k (L/min) | h (L) | Detection | 1 L/min | Median latency, all rates (min) | False alarms / tank-week |
 | --- | --- | --- | --- | --- | --- |
-| 0.3 | 20 | 100% | 100% | -- | 10.82 |
+| 0.3 | 20 | 100% | 100% | 0 | 10.82 |
 | 0.3 | 30 | 100% | 100% | 60 | 5.85 |
 | 0.3 | 45 | 100% | 100% | 80 | 1.97 |
 | 0.3 | 60 | 100% | 100% | 90 | 0.25 **<--** |
@@ -75,4 +86,4 @@ than reporting the best detection rate at an unusable rate.
 | 1.5 | 60 | 60% | 0% | 100 | 0.19 |
 | 1.5 | 90 | 60% | 0% | 120 | 0.19 |
 
-Runtime 8.0 s.
+Runtime 3.5 s.
