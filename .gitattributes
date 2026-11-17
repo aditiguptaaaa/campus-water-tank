@@ -1,0 +1,8 @@
+# Store text with LF and check it out with LF on every machine. The project
+# moves between a Windows laptop and a Mac; without this, a copied folder
+# shows every file as modified when only the line endings differ.
+* text=auto eol=lf
+
+*.pdf binary
+*.png binary
+*.db binary
