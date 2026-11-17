@@ -62,7 +62,9 @@ operating point chosen by the threshold sweep (`k` = 0.3 L/min, `h` = 60 L,
 | --- | --- | --- | --- | --- |
 | SC-1 | Leak detection at 1 L/min and above | ≥ 90% | 100% | PASS |
 | SC-2 | Detection latency at 1 L/min (median) | ≤ 120 min | 120 min | PASS |
-| SC-3 | False alarms on fault-free data | ≤ 1 / tank-week | 0.26 | PASS |
+| SC-3 | False alarms on fault-free data | ≤ 1 / tank-week | 0.25 | PASS |
+| SC-4 | Shortfall warning lead time (median) | ≥ 180 min | 233 min | PASS |
+| SC-5 | Forecast error at 6 h (mean absolute) | ≤ 10% of capacity | 0.7% | PASS |
 | SC-6 | Overflow detection | 100% | 100% | PASS |
 
 | Leak (L/min) | Detected | Median latency | Median estimate |
@@ -74,7 +76,10 @@ operating point chosen by the threshold sweep (`k` = 0.3 L/min, `h` = 60 L,
 | 5.0 | 5/5 | 80 min | 3.88 L/min |
 
 Fault-free scenarios include legitimate demand spikes, sensor dropouts and a
-1 cm quantised sensor — all of which must stay quiet, and do. The full
+1 cm quantised sensor, none of which should raise a leak alert. Over 15.7
+fault-free tank-weeks they raised 4: one in each of the three demand-spike
+runs and one on the quantised sensor — inside the SC-3 ceiling, but not
+zero, and the demand spike is the case that most often fools it. The full
 operating curve is in [`results/REPORT.md`](results/REPORT.md); the chosen
 point maximises detection *subject to* the false-alarm ceiling, rather than
 reporting the best detection rate at an alert rate nobody would tolerate.
@@ -85,9 +90,9 @@ Python 3.11+. **No dependencies** — standard library only, so it starts at
 the demo without a `pip install`.
 
 ```bash
-python tests/test_watertwin.py     # 24 tests
-python validate.py                 # full fault library + threshold sweep (~8 s)
-python validate.py --quick         # smaller library, no sweep
+python tests/test_watertwin.py     # 28 tests
+python validate.py                 # full fault library + threshold sweep (~4-8 s)
+python validate.py --quick         # smaller library, no sweep, untuned defaults
 python -m watertwin.api            # dashboard on http://127.0.0.1:8000
 ```
 
@@ -145,6 +150,14 @@ correctly.
 - **There is a floor on detectable leak size.** At 0.5 L/min the median
   latency is over four hours; below that the residual is lost in demand
   noise at any usable false-alarm rate.
+- **Latency includes waiting for the pump.** `h / (q − k)` is a best case.
+  The detector holds while the pump runs, and every leak scenario starts at
+  midnight, when most runs are mid-refill — so a 5 L/min leak, due in about
+  13 minutes, is typically flagged at 80, some ten minutes after the refill
+  ends. Because all onsets share one time of day, the latencies (SC-2
+  included, which passes at exactly its 120-minute limit) reflect that
+  phase of the pump cycle; onsets at other hours were not tested. The slack
+  is also the larger of `k` and the hour's own spread, so it can exceed `k`.
 - **The magnitude estimate is biased** — slightly high at low leak rates,
   low at high ones, since it averages over the whole episode including the
   onset ramp. It is an estimate for triage, not a meter reading.
