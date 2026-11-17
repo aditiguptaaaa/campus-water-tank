@@ -180,15 +180,30 @@ async function drawSeries(tankId) {
   });
 }
 
-function alertHtml(a) {
+// Minutes as a reader would say them: "40 min", "3.5 h", "2.1 days".
+function duration(mins) {
+  if (mins < 90) return `${Math.round(mins)} min`;
+  if (mins < 48 * 60) return `${(mins / 60).toFixed(1)} h`;
+  return `${(mins / 1440).toFixed(1)} days`;
+}
+
+// `now` is the simulated clock. Age and loss are measured to it while the
+// alert is open; measuring to raised_ts froze them at the moment of
+// detection, so a five-day-old leak still read "20 min ago, about 64 L".
+function alertHtml(a, now) {
   const done = a.outcome !== "open";
-  const mins = Math.round((a.raised_ts - a.onset_ts) / 60);
+  const detectedAfter = (a.raised_ts - a.onset_ts) / 60;
   let msg;
   if (a.kind === "leak") {
+    const timing = done
+      ? `detected ${duration(detectedAfter)} after it began`
+      : `${duration((now - a.onset_ts) / 60)} ago, detected after
+         ${duration(detectedAfter)}; about
+         ${Math.round(a.magnitude * (now - a.onset_ts) / 60).toLocaleString("en-IN")} L
+         lost so far`;
     msg = `<b>Suspected leak on ${a.tank_id}</b> &mdash; losing about
       ${a.magnitude.toFixed(1)} L/min more than this tank's own history
-      explains, since ${clockOf(a.onset_ts)} (${mins} min ago,
-      about ${Math.round(a.magnitude * mins)} L). Confidence
+      explains, since ${clockOf(a.onset_ts)} (${timing}). Confidence
       ${Math.round(a.confidence * 100)}%.`;
   } else if (a.kind === "shortfall") {
     msg = `<b>${a.tank_id} may run dry</b> &mdash; forecast below reserve in
@@ -240,7 +255,7 @@ async function tick() {
 
   const box = document.getElementById("alerts");
   box.innerHTML = st.alerts.length
-    ? st.alerts.map(alertHtml).join("")
+    ? st.alerts.map(a => alertHtml(a, st.sim_ts)).join("")
     : '<p class="empty">No alerts raised yet.</p>';
 }
 
