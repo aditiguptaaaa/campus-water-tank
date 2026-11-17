@@ -4,6 +4,7 @@ Written from the mass balance, not from the detector's assumptions, so that
 detection measured against it means something. Every fault records its true
 onset, which is the ground truth the validation harness scores against.
 """
+from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass, field

@@ -6,6 +6,7 @@ Covers the parts that would fail silently if they broke: the mass balance,
 the baseline, the detector's behaviour on leaks and on things that only
 look like leaks, and the alert manager's de-duplication.
 """
+from __future__ import annotations
 import os
 import sys
 import tempfile

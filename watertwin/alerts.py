@@ -6,6 +6,7 @@ pages, and then detection accuracy stops mattering. This module is what
 keeps the system usable: one condition, one alert, with the evidence a
 technician needs to start looking.
 """
+from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 

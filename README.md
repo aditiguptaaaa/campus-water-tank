@@ -86,12 +86,13 @@ reporting the best detection rate at an alert rate nobody would tolerate.
 
 ## Running it
 
-Python 3.11+. **No dependencies** — standard library only, so it starts at
-the demo without a `pip install`.
+Python 3.9+. **No dependencies** — standard library only, so it starts at
+the demo without a `pip install`, and on 3.9 that includes the Python every
+Mac already ships with (use `python3` there).
 
 ```bash
 python tests/test_watertwin.py     # 29 tests
-python validate.py                 # full fault library + threshold sweep (~4-8 s)
+python validate.py                 # full fault library + threshold sweep (~4-7 s)
 python validate.py --quick         # smaller library, no sweep, untuned defaults
 python -m watertwin.api            # dashboard on http://127.0.0.1:8000
 ```

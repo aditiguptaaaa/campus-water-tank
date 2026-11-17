@@ -4,6 +4,7 @@ Phase 1 feeds (simulated, historical) and Phase 2 feeds (ultrasonic sensors)
 all yield the same Reading stream, so nothing above this module knows which
 is attached. Swapping in real hardware is a new DataSource, not a redesign.
 """
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator, Protocol
 

@@ -3,6 +3,7 @@
 Both the live API and the validation harness drive this same object, so
 what is measured in validation is exactly what runs in the demo.
 """
+from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .alerts import LEAK, OVERFLOW, SHORTFALL, Alert, AlertManager

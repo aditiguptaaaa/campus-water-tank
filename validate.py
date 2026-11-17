@@ -7,6 +7,7 @@ recorded when they were generated.
     python validate.py            full report into results/
     python validate.py --quick    smaller fault library, no sweep
 """
+from __future__ import annotations
 import json
 import pathlib
 import statistics

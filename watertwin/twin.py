@@ -3,6 +3,7 @@
 The twin holds what the tank IS (state, from the feed) and what it SHOULD BE
 (the baseline). Everything downstream works on the difference between them.
 """
+from __future__ import annotations
 import statistics
 from dataclasses import dataclass
 from typing import Iterable

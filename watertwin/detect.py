@@ -6,6 +6,7 @@ demand is noisy -- but a small persistent excess accumulates until it is
 unambiguous. That is what finds a 1 L/min leak that no per-reading
 threshold would ever trip.
 """
+from __future__ import annotations
 from dataclasses import dataclass
 
 from .interface import TankSpec

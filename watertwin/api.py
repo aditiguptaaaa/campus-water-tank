@@ -6,6 +6,7 @@ page, and a dependency-free server is one that still starts at the demo.
     python -m watertwin.api            serve on :8000, replaying a live feed
     python -m watertwin.api --port 9000 --speed 240
 """
+from __future__ import annotations
 import argparse
 import json
 import threading

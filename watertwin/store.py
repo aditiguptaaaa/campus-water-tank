@@ -8,6 +8,7 @@ every access takes the store's own lock. SQLite's Python binding refuses
 cross-thread use by default for exactly this reason; the guard is turned off
 here and replaced with the lock, rather than simply turned off.
 """
+from __future__ import annotations
 import sqlite3
 import threading
 from typing import Iterable

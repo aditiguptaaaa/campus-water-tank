@@ -5,6 +5,7 @@ shortfalls and detects leaks from deviations in expected drain rate.
 
 Standard library only: no pip install, so it runs at the demo.
 """
+from __future__ import annotations
 from .alerts import LEAK, OVERFLOW, SHORTFALL, Alert, AlertManager
 from .detect import LeakDetector, check_overflow, forecast_shortfall
 from .feeds import CsvSource, StoredSource, write_csv

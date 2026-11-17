@@ -10,6 +10,7 @@ proves it by feeding both into identical twins and comparing.
 Tank geometry is configuration, not data, so the spec is supplied by the
 caller rather than carried in the file.
 """
+from __future__ import annotations
 import csv
 from pathlib import Path
 from typing import Iterable, Iterator
