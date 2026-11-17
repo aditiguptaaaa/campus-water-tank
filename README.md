@@ -150,8 +150,10 @@ correctly.
 - **There is a floor on detectable leak size.** At 0.5 L/min the median
   latency is over four hours; below that the residual is lost in demand
   noise at any usable false-alarm rate.
-- **Latency includes waiting for the pump.** `h / (q − k)` is a best case.
-  The detector holds while the pump runs, and every leak scenario starts at
+- **Latency includes waiting for the pump.** `h / (q − k)` is an
+  idealisation, not a bound: it leaves out the refill hold, which adds to
+  latency, and demand noise, which can cut it (at 0.5 L/min the measured
+  median, 250 min, beat the formula's 300). The detector holds while the pump runs, and every leak scenario starts at
   midnight, when most runs are mid-refill — so a 5 L/min leak, due in about
   13 minutes, is typically flagged at 80, some ten minutes after the refill
   ends. Because all onsets share one time of day, the latencies (SC-2
