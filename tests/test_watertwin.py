@@ -284,6 +284,26 @@ def test_pipeline_catches_a_stuck_float_before_the_tank_spills():
     assert spill_at_alert < 50, f"{spill_at_alert:.0f} L lost before alerting"
 
 
+def test_a_cleared_alert_is_resolved_in_the_store():
+    """A leak that stops must not stay 'open' where the dashboard reads it."""
+    base = train_baseline(SPEC, SimulatedSource(
+        SimConfig(SPEC, T0, days=14.0, seed=3)).readings())
+    t1 = T0 + 14 * 86400
+    onset = t1 + 86400
+    store = Store(":memory:")
+    pipe = Pipeline(SPEC, base, Params(k_lpm=0.3, h_litres=60.0), store)
+    src = SimulatedSource(SimConfig(
+        SPEC, t1, days=3.0, seed=9,
+        faults=[Fault("leak", onset, onset + 2 * 3600, rate_lpm=2.0)]))
+    for r in src.readings():
+        pipe.feed(r)
+    leaks = [a for a in store.alerts("T1") if a["kind"] == LEAK]
+    assert leaks, "the two-hour leak must be raised first"
+    assert all(a["outcome"] == "resolved" for a in leaks), \
+        [a["outcome"] for a in leaks]
+    store.close()
+
+
 # --- persistence --------------------------------------------------------
 def test_store_round_trip():
     s = Store(":memory:")

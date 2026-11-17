@@ -64,6 +64,17 @@ class Pipeline:
                 a.id = self.store.put_alert(a)
         return new
 
+    def _clear(self, kind: str) -> None:
+        """The condition has gone away: resolve its alert, here and in the store.
+
+        Resolving only in memory left the stored alert open, so the
+        dashboard, which reads the store, kept showing a transient that had
+        long cleared as an ongoing leak.
+        """
+        a = self.alerts.clear(self.spec.tank_id, kind)
+        if a is not None and a.id is not None and self.store is not None:
+            self.store.set_outcome(a.id, a.outcome)
+
     # --- the three conditions ------------------------------------------
     def _leak(self, s: RateSample) -> list[Alert]:
         d = self.leak.update(s)
@@ -72,7 +83,7 @@ class Pipeline:
                                 d.expected_lpm, d.residual_lpm, d.cusum,
                                 s.pumping)
         if not d.firing:
-            self.alerts.clear(self.spec.tank_id, LEAK)
+            self._clear(LEAK)
             return []
         a = self.alerts.raise_(self.spec.tank_id, LEAK, d.onset_ts, s.ts,
                                d.magnitude_lpm, d.confidence,
@@ -100,7 +111,7 @@ class Pipeline:
                   and f.lead_minutes is not None
                   and f.lead_minutes <= self.p.horizon_min)
         if not firing:
-            self.alerts.clear(self.spec.tank_id, SHORTFALL)
+            self._clear(SHORTFALL)
             return []
         detail = (f"At {self.twin.volume_l:.0f} L, below the {self.baseline.pump_start_l:.0f} L "
                   f"level where this pump usually starts.")
@@ -111,7 +122,7 @@ class Pipeline:
     def _overflow(self) -> list[Alert]:
         sig = check_overflow(self.twin, self.baseline, self.last_sample)
         if not sig.firing:
-            self.alerts.clear(self.spec.tank_id, OVERFLOW)
+            self._clear(OVERFLOW)
             return []
         a = self.alerts.raise_(self.spec.tank_id, OVERFLOW, self.twin.ts,
                                self.twin.ts, sig.minutes_to_full or 0.0,
