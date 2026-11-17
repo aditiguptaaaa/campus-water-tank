@@ -7,3 +7,13 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Local tooling and installers
+.claude/
+*.dmg
+
+# Course reference documents: the university's, not ours to publish
+CBCA301_Framework_Capstone_Project.docx
+fw.txt
+SDG_Goals.pdf
+Technology_Stack.pdf
